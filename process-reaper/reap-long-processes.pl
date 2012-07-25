@@ -8,6 +8,7 @@ use warnings;
 use DBI;
 
 my ($warn, $limit) = @ARGV;
+my %warn_pids;
 
 (($warn || 0) > 0 && ($limit || 0) > 0) or
     die "Usage: reap-long-processes.pl <warn> <limit>
@@ -27,16 +28,40 @@ while (1) {
         { Slice => {} }
     ) or die 'Failed to find stuck queries';
 
+    my %cur_pids;
     for my $stuck (@$all_stuck) {
-        printf "%s WARNING Process %d has been running for over %s seconds\n",
-            scalar(localtime), $stuck->{procpid}, $warn;
-        printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
+
+        $cur_pids{$stuck->{procpid}} = 1;
+        if (!exists $warn_pids{$stuck->{procpid}}) {
+            printf "%s WARNING Process %d has been running for over %s seconds\n",
+                scalar(localtime), $stuck->{procpid}, $warn;
+            printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
+            $warn_pids{$stuck->{procpid}} = 1;
+        }
 
         if ($stuck->{kill}) {
             printf "%s ERROR Process %d has been running for over %d seconds. Killing!\n",
                 scalar(localtime), $stuck->{procpid}, $limit;
             printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
         }
+    }
+
+    my @done_pids;
+    # clean up any pids that are no longer stuck
+    for my $pid (keys %warn_pids)
+    {
+        if (!exists $cur_pids{$pid}) {
+            push @done_pids, $pid;
+            delete($warn_pids{$pid});
+        }
+    }
+
+    if (scalar(keys %warn_pids)) {
+        printf "%s STATUS Processes stuck: %s\n", scalar(localtime), join(",", keys %warn_pids);
+    }
+
+    if (scalar(@done_pids)) {
+        printf "%s STATUS Processes no longer stuck: %s\n", scalar(localtime), join(",", @done_pids);
     }
 
     sleep 10;
