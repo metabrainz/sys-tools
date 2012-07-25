@@ -43,6 +43,7 @@ while (1) {
             printf "%s ERROR Process %d has been running for over %d seconds. Killing!\n",
                 scalar(localtime), $stuck->{procpid}, $limit;
             printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
+            kill(15, $stuck->{procpid});
         }
     }
 
