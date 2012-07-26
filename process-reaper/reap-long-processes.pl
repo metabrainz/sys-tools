@@ -59,8 +59,9 @@ while (1) {
 
     if (scalar(keys %warn_pids)) {
         my @temp;
-        push @temp, sprintf "%d (%s)", $k, $warn_pids{$k};
-            for my $k (keys %warn_pids) 
+        for my $k (keys %warn_pids) {
+            push @temp, sprintf "%d (%s)", $k, $warn_pids{$k};
+        }
         printf "%s STATUS Processes stuck: ", scalar(localtime);
         printf join(",", @temp) . "\n";
     }
