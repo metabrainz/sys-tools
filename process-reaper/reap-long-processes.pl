@@ -36,7 +36,7 @@ while (1) {
             printf "%s WARNING Process %d has been running for over %s seconds\n",
                 scalar(localtime), $stuck->{procpid}, $warn;
             printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
-            $warn_pids{$stuck->{procpid}} = 1;
+            $warn_pids{$stuck->{procpid}} = $stuck->{query_start};
         }
 
         if ($stuck->{kill}) {
@@ -58,7 +58,11 @@ while (1) {
     }
 
     if (scalar(keys %warn_pids)) {
-        printf "%s STATUS Processes stuck: %s\n", scalar(localtime), join(",", keys %warn_pids);
+        my @temp;
+        push @temp, sprintf "%d (%s)", $k, $warn_pids{$k};
+            for my $k (keys %warn_pids) 
+        printf "%s STATUS Processes stuck: ", scalar(localtime);
+        printf join(",", @temp) . "\n";
     }
 
     if (scalar(@done_pids)) {
