@@ -28,7 +28,11 @@ my $dbh = DBI->connect('dbi:Pg:dbname=postgres;host=127.0.0.1', 'postgres')
 
 while (1) {
     my $all_stuck = $dbh->selectall_arrayref(
-        "SELECT procpid, current_query, query_start, now() - query_start > '$limit second'::interval AS kill
+        "SELECT procpid, 
+                current_query, 
+                query_start, 
+                now() - query_start > '$limit second'::interval AS kill,
+                now() - query_start > '$idle second'::interval AS idle
          FROM pg_stat_activity
          WHERE now() - query_start > '$warn second'::interval
            AND current_query != '<IDLE>'
@@ -45,11 +49,12 @@ while (1) {
                 scalar(localtime), $stuck->{procpid}, $warn;
             printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
             $warn_pids{$stuck->{procpid}} = $stuck->{query_start};
-            if ($stuck->{current_query} eq "<IDLE> in transaction" && scalar(localtime) > $idle) {
-                printf "%s ERROR Idle in transaction process %d has been running for over %d seconds. Killing!\n",
-                    scalar(localtime), $stuck->{procpid}, $idle;
-                kill_proc($dbh, $stuck->{procpid});
-            }
+        }
+
+        if ($stuck->{idle} && $stuck->{current_query} eq "<IDLE> in transaction") {
+            printf "%s ERROR Idle in transaction process %d has been running for over %d seconds. Killing!\n",
+                   scalar(localtime), $stuck->{procpid}, $idle;
+            kill_proc($dbh, $stuck->{procpid});
         }
 
         if ($stuck->{kill}) {
