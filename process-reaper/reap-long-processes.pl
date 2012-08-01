@@ -7,10 +7,17 @@ use warnings;
 
 use DBI;
 
+sub kill_proc 
+{
+    my ($dbh, $pid) = @_;
+
+    $dbh->do("SELECT pg_terminate_backend(?)", undef, $pid);
+}
+
 my ($warn, $limit, $idle) = @ARGV;
 my %warn_pids;
 
-(($warn || 0) > 0 && ($idle || 0) > 0) or
+(($warn || 0) > 0 && ($limit || 0) > 0 && ($idle || 0) > 0) or
     die "Usage: reap-long-processes.pl <warn> <limit> <idle>
 <warn> and <limit> are the amount of seconds before warning/killing processes
 <idle> is the amount of time before killing idle transactions
@@ -41,7 +48,7 @@ while (1) {
             if ($stuck->{current_query} eq "<IDLE> in transaction" && scalar(localtime) > $idle) {
                 printf "%s ERROR Idle in transaction process %d has been running for over %d seconds. Killing!\n",
                     scalar(localtime), $stuck->{procpid}, $idle;
-                $dbh->do("SELECT pg_terminate_backend(?)", $stuck->{procpid});
+                kill_proc($dbh, $stuck->{procpid});
             }
         }
 
@@ -49,7 +56,7 @@ while (1) {
             printf "%s ERROR Process %d has been running for over %d seconds. Killing!\n",
                 scalar(localtime), $stuck->{procpid}, $limit;
             printf "%s Query: %s\n", scalar(localtime), $stuck->{current_query};
-            $dbh->do("SELECT pg_terminate_backend(?)", $stuck->{procpid});
+            kill_proc($dbh, $stuck->{procpid});
         }
     }
 
