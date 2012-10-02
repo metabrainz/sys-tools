@@ -7,9 +7,10 @@
 # This gives us a backup of the repo in case something happens to github.
 #
 
-from subprocess import call
+from subprocess import check_output
 import argparse
 import json
+import logging
 import os
 import sys
 import urllib2
@@ -33,23 +34,31 @@ def get_repo_list(user):
         f.close();
         return (data, "")
 
-def clone_repo(repo, dir):
+def clone_repo(clone_url, dir):
     """Given a repo JSON structure and a directory, clone --mirror the repo into that dir """
     try:
         os.makedirs(dir)
     except OSError, e:
-        print "Cannot create repo backup dir: %s" % e
+        log.error("Cannot create repo backup dir: %s" % e)
         return False
 
-    print repo
-
-    return call(["git", "clone", "--mirror", repo["clone_url"], os.path.abspath(dir)])
+    logging.debug("Calling git clone --mirror %s %s" % (clone_url, dir))
+    try:
+        check_output(["git", "clone", "--mirror", clone_url, dir])
+        return True
+    except subprocess.CalledProccessError, e:
+        loging.error("Failed to clone: %s" % e.output)
 
 def update_repo(repo, dir):
     """Update an existing repo"""
-    os.chdir(dir)
-    return call(["git", "remote", "update"])
+    logging.debug("Calling git remote update")
+    try:
+        os.chdir(dir)
+        check_output(["git", "remote", "update"])
+    except subprocess.CalledProcessError, e:
+        logging.error("Failed to update: %s" % e.output)
 
+logging.basicConfig(level=logging.INFO)
 parser = argparse.ArgumentParser(description='Backup all repositories for a given GitHub user.')
 parser.add_argument('user', help='Backup all repositories owned by this username')
 parser.add_argument('dir', help='The directory to create backups in')
@@ -59,23 +68,22 @@ dir = os.path.abspath(args.dir)
 
 repos, err = get_repo_list(args.user)
 if err:
-    print "error fetching repo list: %s" % err
+    logging.critical("error fetching repo list: %s" % err)
     sys.exit(-1)
 
 if not os.path.exists(dir):
     try:
         os.makedirs(dir)
     except OSError, e:
-        print "Cannot create backup dir: %s" % e
+        logging.critical("Cannot create backup dir: %s" % e)
         sys.exit(-1)
 
 for repo in repos:
-    print "%s: %s" % (repo['name'], repo['clone_url'])
+    logging.info("Backing up %s (%s)" % (repo['name'], repo['clone_url']))
     repo_dir = os.path.join(dir, repo['name'])
     if not os.path.exists(repo_dir):
         clone_repo(repo, repo_dir)
     else:
         update_repo(repo, repo_dir)
-    print
 
 sys.exit(0)
