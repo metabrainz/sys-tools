@@ -45,9 +45,9 @@ def clone_repo(repo, dir):
     return call(["git", "clone", "--mirror", repo["clone_url"]])     
 
 def update_repo(repo, dir):
-    '''Update an existing repo by doing a git fetch -all'''
+    """Update an existing repo"""
     os.chdir(dir)
-    return call(["git", "fetch", "--all"])     
+    return call(["git", "remote", "update"])
 
 parser = argparse.ArgumentParser(description='Backup all repositories for a given GitHub user.')
 parser.add_argument('user', help='Backup all repositories owned by this username')
