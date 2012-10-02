@@ -12,6 +12,7 @@ import argparse
 import json
 import logging
 import os
+import subprocess
 import sys
 import urllib2
 
@@ -44,7 +45,7 @@ def clone_repo(clone_url, dir):
 
     logging.debug("Calling git clone --mirror %s %s" % (clone_url, dir))
     try:
-        check_output(["git", "clone", "--mirror", clone_url, dir])
+        check_output(["git", "clone", "--mirror", clone_url, dir], stderr=subprocess.STDOUT)
         return True
     except subprocess.CalledProccessError, e:
         loging.error("Failed to clone: %s" % e.output)
@@ -54,7 +55,7 @@ def update_repo(repo, dir):
     logging.debug("Calling git remote update")
     try:
         os.chdir(dir)
-        check_output(["git", "remote", "update"])
+        check_output(["git", "remote", "update"], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError, e:
         logging.error("Failed to update: %s" % e.output)
 
