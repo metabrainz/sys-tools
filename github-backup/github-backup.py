@@ -41,8 +41,9 @@ def clone_repo(repo, dir):
         print "Cannot create repo backup dir: %s" % e
         return False
 
-    os.chdir(dir)
-    return call(["git", "clone", "--mirror", repo["clone_url"]])     
+    print repo
+
+    return call(["git", "clone", "--mirror", repo["clone_url"], os.path.abspath(dir)])
 
 def update_repo(repo, dir):
     """Update an existing repo"""
