@@ -7,11 +7,12 @@
 # This gives us a backup of the repo in case something happens to github.
 #
 
-import sys
-import os
-import urllib2
-import json;
 from subprocess import call
+import argparse
+import json
+import os
+import sys
+import urllib2
 
 def get_repo_list(user):
     """ Fetch a list of public repos for a given user."""
@@ -48,16 +49,14 @@ def update_repo(repo, dir):
     os.chdir(dir)
     return call(["git", "fetch", "--all"])     
 
-if len(sys.argv) < 3:
-    print "Usage: %s <github user name> <backup dir>" % sys.argv[0]
-    sys.exit(-1)
+parser = argparse.ArgumentParser(description='Backup all repositories for a given GitHub user.')
+parser.add_argument('user', help='Backup all repositories owned by this username')
+parser.add_argument('dir', help='The directory to create backups in')
 
-user = sys.argv[1]
-dir = sys.argv[2]
+args = parser.parse_args()
+dir = os.path.abspath(args.dir)
 
-dir = os.path.abspath(dir)
-
-repos, err = get_repo_list(user)
+repos, err = get_repo_list(args.user)
 if err:
     print "error fetching repo list: %s" % err
     sys.exit(-1)
