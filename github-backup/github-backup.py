@@ -7,7 +7,7 @@
 # This gives us a backup of the repo in case something happens to github.
 #
 
-from subprocess import check_output
+from subprocess import Popen
 import argparse
 import json
 import logging
@@ -44,20 +44,23 @@ def clone_repo(clone_url, dir):
         return False
 
     logging.debug("Calling git clone --mirror %s %s" % (clone_url, dir))
-    try:
-        check_output(["git", "clone", "--mirror", clone_url, dir], stderr=subprocess.STDOUT)
-        return True
-    except subprocess.CalledProccessError, e:
-        loging.error("Failed to clone: %s" % e.output)
+    process = Popen(["git", "clone", "--mirror", clone_url, dir], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    r = process.communicate()
+
+    if process.returncode != 0:
+        loging.error("Failed to clone: %s, %s" % r)
 
 def update_repo(repo, dir):
     """Update an existing repo"""
     logging.debug("Calling git remote update")
-    try:
-        os.chdir(dir)
-        check_output(["git", "remote", "update"], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
-        logging.error("Failed to update: %s" % e.output)
+
+    os.chdir(dir)
+    process = Popen(["git", "remote", "update"], stderr=subprocess.STDOUT,
+                    stdout=subprocess.PIPE)
+    r = process.communicate()
+
+    if process.returncode != 0:
+        logging.error("Failed to update: %s, %s" % r)
 
 logging.basicConfig(level=logging.INFO)
 parser = argparse.ArgumentParser(description='Backup all repositories for a given GitHub user.')
