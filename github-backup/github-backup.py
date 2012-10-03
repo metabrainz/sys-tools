@@ -85,9 +85,10 @@ if not os.path.exists(dir):
 for repo in repos:
     logging.info("Backing up %s (%s)" % (repo['name'], repo['clone_url']))
     repo_dir = os.path.join(dir, repo['name'])
+    clone_url = repo['clone_url']
     if not os.path.exists(repo_dir):
-        clone_repo(repo, repo_dir)
+        clone_repo(clone_url, repo_dir)
     else:
-        update_repo(repo, repo_dir)
+        update_repo(clone_url, repo_dir)
 
 sys.exit(0)
