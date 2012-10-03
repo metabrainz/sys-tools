@@ -8,7 +8,7 @@
 #
 
 from subprocess import Popen
-import argparse
+from optparse import OptionParser
 import json
 import logging
 import os
@@ -63,14 +63,17 @@ def update_repo(repo, dir):
         logging.error("Failed to update: %s, %s" % r)
 
 logging.basicConfig(level=logging.INFO)
-parser = argparse.ArgumentParser(description='Backup all repositories for a given GitHub user.')
-parser.add_argument('user', help='Backup all repositories owned by this username')
-parser.add_argument('dir', help='The directory to create backups in')
 
-args = parser.parse_args()
-dir = os.path.abspath(args.dir)
+parser = OptionParser(description='Backup all repositories for a given GitHub user.',
+                      usage='usage: %prog [options] user destination')
+(options, args) = parser.parse_args()
 
-repos, err = get_repo_list(args.user)
+if len(args) != 2:
+    parser.error('Incorrect arguments. Remember to pass the GitHub username and a destination for backups')
+
+dir = os.path.abspath(args[1])
+
+repos, err = get_repo_list(args[0])
 if err:
     logging.critical("error fetching repo list: %s" % err)
     sys.exit(-1)
