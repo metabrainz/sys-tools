@@ -50,7 +50,7 @@ def clone_repo(clone_url, dir):
     if process.returncode != 0:
         logging.error("Failed to clone: %s, %s" % r)
 
-def update_repo(repo, dir):
+def update_repo(dir):
     """Update an existing repo"""
     logging.debug("Calling git remote update")
 
@@ -86,12 +86,12 @@ if not os.path.exists(dir):
         sys.exit(-1)
 
 for repo in repos:
-    logging.info("Backing up %s (%s)" % (repo['name'], repo['clone_url']))
+    clone_url = repo['git_url']
+    logging.info("Backing up %s (%s)" % (repo['name'], clone_url))
     repo_dir = os.path.join(dir, repo['name'])
-    clone_url = repo['clone_url']
     if not os.path.exists(repo_dir):
         clone_repo(clone_url, repo_dir)
     else:
-        update_repo(clone_url, repo_dir)
+        update_repo(repo_dir)
 
 sys.exit(0)
