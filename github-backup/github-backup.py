@@ -48,7 +48,7 @@ def clone_repo(clone_url, dir):
     r = process.communicate()
 
     if process.returncode != 0:
-        loging.error("Failed to clone: %s, %s" % r)
+        logging.error("Failed to clone: %s, %s" % r)
 
 def update_repo(repo, dir):
     """Update an existing repo"""
