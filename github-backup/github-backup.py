@@ -9,7 +9,7 @@
 
 from subprocess import Popen
 from optparse import OptionParser
-import json
+import simplejson as json
 import logging
 import os
 import subprocess
