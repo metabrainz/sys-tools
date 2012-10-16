@@ -16,10 +16,10 @@ import subprocess
 import sys
 import urllib2
 
-def get_repo_list(user):
+def get_repo_list(user, code):
     """ Fetch a list of public repos for a given user."""
 
-    url = "https://api.github.com/users/%s/repos" % user
+    url = "https://api.github.com/orgs/%s/repos?access_token=%s&type=%s" % (user, code, "all")
     while True:
         try:
             opener = urllib2.build_opener()
@@ -35,13 +35,15 @@ def get_repo_list(user):
         f.close();
         return (data, "")
 
-def clone_repo(clone_url, dir):
+def clone_repo(repo, dir):
     """Given a repo JSON structure and a directory, clone --mirror the repo into that dir """
     try:
         os.makedirs(dir)
     except OSError, e:
         log.error("Cannot create repo backup dir: %s" % e)
         return False
+
+    clone_url = repo['ssh_url'] if repo['private'] else repo['git_url']
 
     logging.debug("Calling git clone --mirror %s %s" % (clone_url, dir))
     process = Popen(["git", "clone", "--mirror", clone_url, dir], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
@@ -66,14 +68,18 @@ logging.basicConfig(level=logging.INFO)
 
 parser = OptionParser(description='Backup all repositories for a given GitHub user.',
                       usage='usage: %prog [options] user destination')
+parser.add_option('-c', '--access-code', dest="code", help="GitHub OAuth access token")
 (options, args) = parser.parse_args()
+
+if not options.code:
+    parser.error('The --access-code option is required')
 
 if len(args) != 2:
     parser.error('Incorrect arguments. Remember to pass the GitHub username and a destination for backups')
 
 dir = os.path.abspath(args[1])
 
-repos, err = get_repo_list(args[0])
+repos, err = get_repo_list(args[0], options.code)
 if err:
     logging.critical("error fetching repo list: %s" % err)
     sys.exit(-1)
@@ -86,11 +92,10 @@ if not os.path.exists(dir):
         sys.exit(-1)
 
 for repo in repos:
-    clone_url = repo['git_url']
-    logging.info("Backing up %s (%s)" % (repo['name'], clone_url))
+    logging.info("Backing up %s" % repo['name'])
     repo_dir = os.path.join(dir, repo['name'])
     if not os.path.exists(repo_dir):
-        clone_repo(clone_url, repo_dir)
+        clone_repo(repo, repo_dir)
     else:
         update_repo(repo_dir)
 
